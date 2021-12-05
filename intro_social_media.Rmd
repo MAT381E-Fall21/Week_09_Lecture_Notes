@@ -1,0 +1,760 @@
+---
+title: "MAT381E-Week 9: Data Retrieval from Twitter"
+subtitle: ""
+author: "Gül İnan"
+institute: "Department of Mathematics<br/>Istanbul Technical University"
+date: "`r format(Sys.Date(), '%B %e, %Y')`"
+output:
+  xaringan::moon_reader:
+    css: ["default", "xaringan-themer.css"] 
+    self_contained: false # if true, fonts will be stored locally
+    nature:
+      titleSlideClass: ["left", "middle", "my-title"]
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: '16:9' # alternatives '16:9' or '4:3' or others e.g. 13:9
+      navigation:
+        scroll: false # disable slide transitions by scrolling
+---
+
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+library(xaringanthemer)
+style_mono_light(
+  base_color = "#042856", 
+  header_color = "#7cacd4",
+  title_slide_text_color = "#7cacd4",
+  link_color = "#0000FF",
+  text_color = "#000000",
+  background_color = "#FFFFFF",
+  header_h1_font_size ="2.00rem"
+  )
+```
+
+
+```{r xaringan-scribble, echo=FALSE}
+xaringanExtra::use_scribble() #activate for the pencil
+xaringanExtra::use_xaringan_extra(c("tile_view", "animate_css", "tachyons"))
+xaringanExtra::use_panelset() #panel set
+```
+
+
+```{r setup, include = FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+# Outline
+
+* Data retrieval from Twitter.
+* 01_rtweet.Rmd (hands-on, in class).
+---
+### Social Media Data
+
+- **Social media data** typically describes information created and curated by individual users and collected using public platforms such as Twitter, Facebook, Instagram, YouTube, Snapchat, and many other social media networks.
+- Social media data can be a **powerful source of information** given it can provide a near **real-time outlook** on both social events such as **politics**, **current day events** (financial events, military events, and social movements) and natural processes including **weather events** (rainfall, snow), **disturbances** (earthquakes, floods, and other natural disasters), and more.
+
+---
+#### Challenges Working with Social Media Data
+- There are many challenges associated with social media data including:
+  - **Non standard text:** because social media data are often a combination of text, graphics and videos, there is a significant data cleaning involved. Often, you need to find information about something in non-standard text format - some words may be capitalized, abbreviations may be used, punctuation and even emojiis all have to be considered when working with text.
+  - **Non-standard or lack of consistent geolocation information:** Not all social media is spatially located (geolocated). It is thus often tricky to figure out where the data are coming from. Sometimes you have some geolocation information in non-standard text formats - for instance İstanbul may be in the forms: İst, IST, ISTANBUL and so on.
+   - **API limitations:** Most APIs don’t allow users to download everything. In the case of Twitter, you are limited to 6-9 days of historical tweets, 18,000 tweets per API call. There is also restriction on the number of requests you are allowed to do is based on a time interval such as 15-minutes. 
+---
+#### 💡 A side note: Getting Data from Internet
+
+- There are a few ways to obtain data from the Internet: 
+  - **Click and download data** on the internet as a flat file such as `.csv` or `.xls`,
+  - **Scrape** an html website, and
+  - **Use APIs** (standard APIs or APIs possibly wrapped within a software package).
+  
+---
+class: middle, center
+
+```{r echo=FALSE, out.height='100%', out.width='80%'}
+knitr::include_graphics('images/apitwitter.png')  
+```
+
+---
+#### Application Program Interfaces (APIs)
+- **API** is an acronym for **Application Programming Interface**, which is an intermediate software that allows two applications to talk to each other. 
+
+#### Example 
+- When you use an application on your mobile phone (i.e., searching flights on an online travel service such as Kayak or Expedia), the application connects to the Internet and sends data (i.e., departure and return cities and dates and more) to a server (databases of several airlines). 
+- The server then retrieves that data, interprets it, performs the necessary actions (i.e., book seats, adjust baggage options, etc) and sends it back to your phone (i.e., your travel itinerary).  
+- The application which interprets that data and presents you with the information you wanted in a readable way happens via API.
+
+[Source](https://www.mulesoft.com/resources/api/what-is-an-api)
+
+---
+- As any other piece of productized software, the **modern API has its own software development lifecycle** of designing, testing, building, managing, and versioning. 
+- Also, modern APIs are **well documented** for consumption and versioning.
+
+---
+#### Twitter
+
+- According to Wikipedia:  
+
+>
+Twitter is a social networking and microblogging service. Users use any device with an internet connection and a web browser to send and to read messages, called "tweets". For years, tweets could be up to 140 characters long, then doubled in November 2017 to 280 characters. They appear on the user's profile page. Tweets can usually be read by anyone, but senders can also keep messages private. Private tweets only go to their list of friends. Users may subscribe to tweets from other people. This is called following, and subscribers are known as followers. 
+>
+
+- Many people use Twitter to discuss on any topic. These topics may be related anything of interest and may including: **science**, **data science**, **computing**, sports, politics, weather, news, media, and more.
+---
+```{r, echo=F, fig.link="https://developer.twitter.com/en/products/twitter-api", out.height="20%"}
+knitr::include_graphics("images/twitter_api.png")
+```
+
+[Source](https://developer.twitter.com/en/products/twitter-api)
+
+---
+```{r, echo=F, fig.link="https://twitterdev.bevylabs.com/istanbul-twitter-developer-community/", out.height="30%"}
+knitr::include_graphics("images/twitter_istanbul_api.png")
+```
+
+[Source](https://twitterdev.bevylabs.com/istanbul-twitter-developer-community/)
+
+---
+
+```{r, echo=F, fig.link="https://twitterdev.bevylabs.com/events/details/twitter-istanbul-twitter-developer-community-presents-deep-dive-tutorial-on-twitter-academic-api-usage/", out.height="30%"}
+knitr::include_graphics("images/istanbul_meeting.png")
+```
+
+[Source](https://twitterdev.bevylabs.com/events/details/twitter-istanbul-twitter-developer-community-presents-deep-dive-tutorial-on-twitter-academic-api-usage/)
+
+---
+#### Collecting Social Media Data
+
+- The general procedure for working with social media data includes the following steps:
+  - Learn about platform's specific requirements in relation to data collection, privacy, and data management.
+  - Learn about the platform's `API` rules.
+  - Social media rules change too quickly and social platform may not tell you about changes done and announce them only after!
+
+---
+
+```{r, echo=F, fig.link="https://developer.twitter.com/en/developer-terms/more-on-restricted-use-cases", out.height="5%"}
+knitr::include_graphics("images/twitter_privacy.png")
+```
+
+---
+class: middle, center
+
+# Collecting Data via Twitter 
+
+
+---
+#### Collecting Data via Twitter 
+
+1. To connect to Twitter, you need to have a `Twitter account`. 
+2. You can create it [here](https://twitter.com/signup). 
+You need to note down your `username` and `password`. 
+3. You may need developers' access key if you want to work with `Twitter API` directly or use R package `rtweet`.
+
+---
+#### Collecting Data via Twitter standard API
+
+```{r, echo=F, out.height="50%", fig.link="https://developer.twitter.com/en/use-cases/do-research"}
+knitr::include_graphics("images/twitter_dev.png")
+```
+
+---
+#### Get Twitter API Developer Key
+
+```{r, echo=F, out.height="50%", fig.link="https://developer.twitter.com/en/portal/petition/essential/basic-info"}
+knitr::include_graphics("images/developer.png")
+```
+
+---
+class: middle, center
+ 
+  # rtweet
+  
+```{r echo=FALSE, out.height='100%', out.width='30%'}
+knitr::include_graphics('logo/rtweet.png')
+```
+
+
+---
+# rtweet package 
+- The [rtweet package](https://docs.ropensci.org/rtweet/) provides users a range of functions designed to extract data from Twitter’s APIs. 
+- Conveniently, we **do need a Twitter account** only.
+- First, to be able to use the functionality of `rtweet` package, we have to install and load the package: 
+
+```{r}
+#install.packages("rtweet")
+library(rtweet)
+```  
+
+---
+
+- As a next step, we need to approve the browser pop-up and it will create a token and need to save it for future use (as far as i see you need to do this only once per machine).
+
+```{r echo=FALSE, out.height='100%', out.width='60%'}
+knitr::include_graphics('images/auth.png')  
+```
+
+---
+#### Access tokens:  Problems with above?
+
+- If you were unable to authenticate with the Twitter API, you will need to use the `rwteet::create_token()` function.  Read more about obtaining and using tokens.  **Specifically**, see under the authorization methods, section 2: [_Access token/secret method_](https://docs.ropensci.org/rtweet/articles/auth.html#access-tokensecret-method).
+
+  
+---
+
+- Some most useful functions in `rtweet` package include:
+
+|Function           | Description                                                      |
+|-------------------|------------------------------------------------------------------|
+|`search_users()`   | getting users data on accounts identified via search query.      |
+|`search_tweets()`  | getting tweets data on statuses identified via search query.     |
+|`ts_plot()`        | plotting tweets data as a time series-like data object.          |
+|`get_friends()`    | getting user IDs of accounts followed by target user(s).             |
+|`get_followers()`  | getting user IDs for accounts following target user.                 |
+|`get_timeline()`   | getting one or more user timelines (tweets posted by target user(s)).|
+|`get_favorites()`  | getting tweets data for statuses favorited by one or more target users.|           |
+|`get_trends()`     | getting Twitter trends data.                                        |
+
+
+
+---
+
+#### Find Twitter users: search_users()
+
+- The function `search_users(q, n)` enables us to search for Twitter users by interest, full name, company name, or location (exact match searches are not supported).
+- In the following example, `search_users(q, n)` will locate first 1000 Twitter users who Tweeted about **artificial intelligence**.
+
+```{r, eval=F}
+ai_lovers <- search_users(q = "artificial intelligence", n = 1000)
+#returns the latest tweets of the users who mentioned about AI sometime.
+#search can be done over Twitter profiles as well.
+#View(ai_lovers)
+```
+
+- Some of input arguments:
+  - `q`: Should be a character string not to exceed 500 characters maximum. Spaces are assumed to function like Boolean "AND" operators. For example, the search query = "data science" searches for tweets using both "data" and "science" though the words can appear anywhere and in any order in the tweet. To search for tweets including one of multiple possible terms, separate search terms with spaces and the word "OR". **Go to the help menu for more details!..**
+  - `n`: Numeric, specifying the total number of desired users to return. Default is 100. Maximum number of users returned from a single search is 1,000.
+
+
+---
+
+```{css echo=FALSE}
+.pull-left {
+  float: left;
+  width: 50%;
+}
+.pull-right {
+  float: right;
+  width: 50%;
+}
+```
+
+- Two examples returned with screen names are: **MIT_CSAIL** and **nordicinst**, respectively:
+
+
+.pull-left[
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/mit_csail.png')  
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/naii.png')  
+```
+]
+
+---
+#### Results
+
+- Gathering Tweeter users will return a **90 variable tibble** with row size of at most **n**. Now, please spend some time to get familiar with these variables. 
+
+```{r, eval=F}
+library(tibble)
+class(ai_lovers)
+glimpse(ai_lovers)
+# The type of "created_at" variable is defined as <dttm>.
+# Tibbles print date as <dttm>. Elsewhere in R these are called POSIXct.
+```
+
+- Some of the returned variables are:
+  - **user_id:** Twitter user id.
+  - **status_id:** Twitter id of the last tweet.
+  - **created_at:** Date-time of the last tweet.
+  - **screen_name:** Twitter user name.
+  - **text:** Text of the last tweet.
+  - **source:** The platform where the last tweet is sent from.
+  - **display_text_width:** Character length of the last tweet (the limit is 280 characters).
+
+---
+#### 💡 A side note:
+
+- If you are interested in `Twitter character counts` more, take
+a look at this article:
+
+```{r echo=FALSE, out.height='100%', out.width='70%'}
+knitr::include_graphics('images/twitter_character.png')  
+```
+
+[Source](https://developer.twitter.com/en/docs/counting-characters)
+
+
+---
+#### Collect data: search_tweets()
+
+- The function `search_tweets(q, n, retryonratelimit)` enables us to search tweets with a query, however only last 6-9 days can be collected.
+
+- Let's find out tweets mentioning about **artificial intelligence**: 
+
+```{r, eval=F}
+### recommended: limit the number of tweets returned (`n = 100`) for this training.  
+#### Otherwise you may hit a rate limit.
+ai_tweets <- search_tweets(q = "artificial intelligence", n = 100)
+```
+
+- Some of input arguments:
+  - `q`: Query to be searched, used to filter and select tweets. Should be a character string not to exceed 500 characters maximum. Spaces are assumed to function like boolean "AND" operators. **Go to the help menu for more details!..**
+  - `n`: Integer number of tweets to return. The default is 100. The max is 18,000.
+  - `retryonratelimit`: The default is FALSE. Set to TRUE to search more than 18,000. For popular topics, the total number of tweets window of time (7-10 days) can easily reach the millions.
+  - `include_rts = FALSE`: Exclude retweets.  
+  - `lang = "en" `: Language in English.   
+  - `lang = "tr" `: Language in Turkish.
+  - `geocode`:  Geographical limiter. Limits search results to "latitude, longitude". For example, `geocode = "41.015137,28.979530,100mi"` limit search results to Istanbul.
+ 
+---
+
+```{r, eval=F}
+#search tweets about artificial intelligence in turkish tweets
+ai_tweets_tr <- search_tweets(q = "artificial intelligence", n = 100, lang = "tr")
+colnames(ai_tweets_tr)
+ai_tweets_tr %>% select("text") %>% .[1,]
+```
+
+
+```{r}
+#search tweets about yapay zeka around istanbul
+yz <- search_tweets(q = "yapay zeka", geocode = "41.015137,28.979530,100mi")
+```
+
+
+---
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/rate_limit.png')  
+```
+
+[Source](https://developer.twitter.com/en/docs/twitter-api/rate-limits)
+
+---
+- 💡 Twitter API documentation recommends limiting searches to 10 keywords and operators.
+-  Some more examples on `Twitter` search queries (none of these are case sensitive):
+
+|     Search Query                 |                   Tweets ...                           |
+|----------------------------------|--------------------------------------------------------|
+| "artificial intelligence"                | includes both "artificial" and "intelligence", words can appear in any order in the tweet. |
+| "artificial OR intelligence"             | returns **any tweet** including either "artificial" or "intelligence".|        
+|'"artificial intelligence"'               | returns tweets containing exact phrase.  |                 
+| "\"artificial intelligence\""            | return tweets containing exact phrase.         
+
+---
+
+```{css echo=FALSE}
+.pull-left {
+  float: left;
+  width: 50%;
+}
+.pull-right {
+  float: right;
+  width: 50%;
+}
+```
+
+- More on Twitter query operators:
+
+.pull-left[
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/query1.png')  
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/query2.png')  
+```
+]
+
+[Source-page 59](https://cran.r-project.org/web/packages/rtweet/rtweet.pdf)
+
+---
+#### Plot the retrieved data: ts_plot()
+
+.panelset[
+
+.panel[.panel-name[Code]
+- The function `ts_plot(data, by)` creates a `ggplot2` plot of the frequency of tweets over a specified interval of time (you can check the class of the plot object).
+- Let's plot the number of tweets mentioning the official Twitter account of ITU: "@itu1773" over the past days.
+
+```{r, eval=F}
+####plot 1
+itu_search <- search_tweets(q = "@itu1773", n = 10000)
+ts_plot(data = itu_search, by="days")
+```
+
+- Some of the input arguments:
+  - `data`: Data frame or grouped data frame.
+  - `by`:  Desired interval of time expressed as numeral plus one of "secs", "mins", "hours",
+"days", "weeks", "months", or "years". If a numeric is provided, the value is assumed to be in seconds.
+  - `...`: Other arguments passed to `geom_line()`.	
+]
+
+.panel[.panel-name[Output]
+
+```{r, echo=FALSE, out.width="40%"}
+####plot 1
+itu_search <- search_tweets(q = "@itu1773", n = 1000)
+ts_plot(data = itu_search, by = "days")
+```
+]
+]
+
+---
+.panelset[
+
+.panel[.panel-name[Code]
+- If `ggplot2` is loaded then, `ts_plot()` is actually returns a `ggplot2` plot object.
+
+```{r, eval=F}
+class(ts_plot(data = itu_search, by = "days"))
+```
+
+- Let's group the tweets to compare by language.
+
+```{r, eval=F}
+####plot 2
+library(ggplot2)
+
+itu_search %>%
+   #mutate(created_at = as.Date(created_at)) %>% 
+    dplyr::group_by(lang) %>% 
+    ts_plot(by="days") +
+    labs(title = "Number of Tweets mentioning @itu1773 over time",
+         subtitle = "Tweets are collected over December 2021",
+         caption = "\nSource: Data collected from Twitter's REST API via rtweet",
+         x = "Days", y = "Frequency",
+         color = "Language") +
+   scale_y_continuous(limits = c(0, 60)) +
+   #scale_x_date(position = "top") + #did not work
+#I opened an issue at: https://github.com/ropensci/rtweet/issues/573#issuecomment-825999849  
+   theme_minimal() +
+   theme(legend.title = element_blank(),
+         legend.position = "bottom",
+         plot.title = element_text(face = "bold")) 
+```
+]
+
+.panel[.panel-name[Output]
+```{r, echo=FALSE, out.width="40%"}
+####plot 2
+library(ggplot2)
+
+itu_search %>%
+   #mutate(created_at = as.Date(created_at)) %>% 
+    dplyr::group_by(lang) %>% 
+    ts_plot(by="days") +
+    labs(title = "Number of Tweets mentioning @itu1773 over time",
+         subtitle = "Tweets are collected over December 2021",
+         caption = "\nSource: Data collected from Twitter's REST API via rtweet",
+         x = "Days", y = "Frequency",
+         color = "Language") +
+   scale_y_continuous(limits = c(0, 60)) +
+   #scale_x_date(position = "top") + #did not work
+#I opened an issue at: https://github.com/ropensci/rtweet/issues/573#issuecomment-825999849  
+   theme_minimal() +
+   theme(legend.title = element_blank(),
+         legend.position = "bottom",
+         plot.title = element_text(face = "bold")) 
+```
+
+]
+]
+---
+#### get friends
+- The function `get_friends(users, n)` returns a list of user IDs for the accounts following BY one or more specified users.
+- Let's find all the accounts which **itu1773 user** follows:
+
+```{r, eval=F}
+itu_friends <-  get_friends("itu1773") 
+#View(itu_friends)
+```
+
+- Some of the input arguments:
+  - `users`: Screen name or user ID of target user.	
+  - `n`:  Number of friends (user IDs) to return. Defaults to 5,000.
+- It returns a data frame with target user screen name and user IDs of friends (accounts followed BY target user).
+
+---
+- Next, use `lookup_users()` with the `user_id` variable to get **more information about those accounts**.
+
+```{r, eval=F}
+itu_friend_data <- lookup_users(itu_friends$user_id)
+#View(itu_friend_data)
+```
+
+- Let's get the screen names of the user accounts.
+
+```{r, eval=F}
+library(dplyr)
+#get the screen names of the users
+itu_friend_names <- itu_friend_data %>% 
+                      select(screen_name) 
+#View(itu_friend_names)
+```
+
+---
+
+- A recent example: get user ids of accounts followed by Donald Trump.
+
+```{r}
+djt <- get_friends("realDonaldTrump")
+djt
+```
+
+--
+
+.pull-right[
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/djt.png')  
+```
+[Source](https://blog.twitter.com/en_us/topics/company/2020/suspension.html)
+]
+
+
+---
+#### get followers
+
+- The function `get_followers(user, n)` returns a list of user IDs for the accounts following specified user. 
+- Let's find all the accounts which follows **itu1773 user**:
+
+```{r, eval=F}
+follow_itu <- get_followers(user="itu1773")
+#returns most recent 5000 followers
+#View(follow_itu)
+```
+
+```{r, eval=F}
+##if you have run the previous code, wait a couple of minutes prior to
+##running the code below:
+#follow_itu <- get_followers(user="itu1773", retryonratelimit = TRUE)
+#View(follow_itu)
+```
+
+- Some of the input arguments:
+  - `users`: Screen name or user ID of target user from which the user IDs of followers will be retrieved.
+  - `n`:  Number of friends (user IDs) to return. Defaults to 5,000.
+- It returns a data frame with user IDs of followers.
+
+---
+- Next, use `lookup_users()` with the `user_id` variable to get more information about those accounts.
+
+```{r, eval=F}
+#be careful, it is too slow, may not response immediately.
+itu_follower_data <- lookup_users(follow_itu$user_id)
+#View(itu_follower_data)
+```
+
+---
+#### get timelines
+
+- The function `get_timelines(user, n)` returns up to 3,200 statuses posted to the timelines of each of one or more specified Twitter users.
+- Let's find latest posts of **itu1773 user**:
+
+```{r, eval=T}
+itu_tmls <- get_timelines("itu1773", n = 210)
+#View(itu_tmls)
+```
+
+- Some of the input arguments:
+  - `users`: Vector of user names, user IDs, or a mixture of both.
+  - `n`:  Number of tweets to return per timeline. Defaults to 100.
+- It returns a tbl data frame of tweets data with users.
+
+---
+- Check the time interval in the data.
+```{r, eval=T}
+library(dplyr)
+itu_tmls %>% 
+  summarise(min(created_at), max(created_at))
+```
+
+---
+
+```{css echo=FALSE}
+.pull-left {
+  float: left;
+  width: 60%;
+}
+.pull-right {
+  float: right;
+  width: 35%;
+}
+```
+
+.pull-left[        
+- Let's see what itu1773 user shared on October 29, 2021!..🇹🇷🇹🇷
+
+```{r eval=T, message=FALSE, warning=FALSE, out.width="50%"}
+
+library(dplyr)
+library(lubridate)
+
+republic_day <- itu_tmls %>%
+                  mutate(created_at = date(created_at)) %>% 
+                  filter(created_at == ymd("2021-10-29")) %>% 
+                  select(text) %>% .[2,] %>% 
+                  as.data.frame()
+knitr::kable(republic_day, col.names="")
+```
+
+]
+
+--
+
+.pull-right[
+
+<blockquote class="twitter-tweet"><p lang="tr" dir="ltr">Bağımsızlığımızın teminatı olan ve ülkemizin kuruluşunu temsil eden Cumhuriyetimiz bugün 98 yaşında… Cumhuriyetimizin kurucusu Gazi Mustafa Kemal Atatürk’ü ve silah arkadaşlarını saygı ve minnetle anıyoruz. <a href="https://twitter.com/hashtag/29EkimCumhuriyetBayram%C4%B1?src=hash&amp;ref_src=twsrc%5Etfw">#29EkimCumhuriyetBayramı</a>’mız kutlu olsun! 🇹🇷 <a href="https://t.co/52Dx8GUjum">pic.twitter.com/52Dx8GUjum</a></p>&mdash; İTÜ - İstanbul Teknik Üniversitesi (@itu1773) <a href="https://twitter.com/itu1773/status/1453964833720717315?ref_src=twsrc%5Etfw">October 29, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+]
+
+
+---
+#### get_favorites
+
+- The function `get_favorites(user, n)` returns up to 3,000 statuses favorited by each of one or more specific Twitter users.
+
+```{r, eval=F}
+itu_faves <- get_favorites("itu1773", n = 1000)
+#View(itu_faves)
+```
+
+```{r, eval=F}
+#Guess who is the user most liked by itu1773?
+library(dplyr)
+
+itu_faves %>% 
+  group_by(screen_name) %>% 
+  summarize(n=n()) %>% 
+  top_n(5)
+```
+
+---
+#### get trends
+
+- The function `get_trends(woeid, n)` returns up to 3,000 statuses favorited by each of one or more specific Twitter users.
+
+- What is trending in İstanbul?
+
+```{r, eval=F}
+ist <- get_trends("istanbul")
+#ist <- get_trends(2344116)  #WOEID of Istanbul
+#istanbul <- get_trends(lat = 41.015137, lng = 28.979530)
+#View(ist)
+```
+
+- Some of the input arguments:
+  - `woeid`: Numeric, WOEID (Yahoo! Where On Earth ID) or character string of desired town or country. Users may also supply latitude and longitude coordinates to fetch the closest available trends data given the provided location. To find WOEID IDs, go to the https://www.yahoo.com/news/weather/ and search for the city. WOEID will be at the end of the url of the page.
+  - `lat`: Optional alternative to WOEID.	
+  - `lng`: Optional alternative to WOEID.	
+
+- It returns a tibble data frame of trends data for a given geographical area.
+
+---
+
+```{r, eval=F}
+#cautionary note: query results are the trending
+#topics in Istanbul at the time of query. I do not take 
+#any responsibility
+#for the query results.
+ist %>% 
+   arrange(tweet_volume) 
+```
+
+---
+class: center
+
+```{css echo=FALSE}
+.pull-left {
+  float: left;
+  width: 50%;
+}
+.pull-right {
+  float: right;
+  width: 50%;
+}
+```
+
+#### Academic Research with Twitter Data
+
+.pull-left[  
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Students &amp; researchers, we have something new for you. 🌟<br> <br>Introducing a new 101 course designed to help you start with academic research using the <a href="https://twitter.com/hashtag/TwitterAPI?src=hash&amp;ref_src=twsrc%5Etfw">#TwitterAPI</a> v2. 📖 <br><br>Complete with cheat sheets and code samples in Python and R, so you can plug and play. <a href="https://t.co/ugh9Md6ADN">https://t.co/ugh9Md6ADN</a> <a href="https://t.co/FaZN1Y8WwJ">pic.twitter.com/FaZN1Y8WwJ</a></p>&mdash; Twitter Dev (@TwitterDev) <a href="https://twitter.com/TwitterDev/status/1409931481552543749?ref_src=twsrc%5Etfw">June 29, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+]
+
+.pull-right[ 
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/twitter_academic_search.png')  
+```
+[Source](https://developer.twitter.com/en/solutions/academic-research)
+]
+
+---
+class: center, middle
+
+```{r echo=FALSE, fig.link="https://developer.twitter.com/en/portal/petition/academic/is-it-right-for-you", out.height='100%', out.width='100%'}
+knitr::include_graphics('images/twitter2.png')  
+```
+
+[Source](https://developer.twitter.com/en/portal/petition/academic/is-it-right-for-you)
+]
+---
+class: center, middle
+
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/covid19.png')  
+```
+---
+
+```{css echo=FALSE}
+.pull-left {
+  float: left;
+  width: 45%;
+}
+.pull-right {
+  float: right;
+  width: 45%;
+}
+```
+
+#### Facebook and YouTube
+
+.pull-left[
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/facebook1.png')  
+```
+[Source](https://migrationdataportal.org/data-innovation-46)
+]
+
+
+.pull-right[
+```{r echo=FALSE, out.height='100%', out.width='100%'}
+knitr::include_graphics('images/youtube1.png')  
+```
+[Source](https://www.db-thueringen.de/servlets/MCRFileNodeServlet/dbt_derivate_00049346/2192-4007_9_2020_1_62-88.pdf)
+
+]
+
+
+
+---
+# Attributions
+- [Twitter data retrieval](https://raw.githubusercontent.com/maria-pro/useR2019_tutorial/master/Twitter.Rmd).
+- [Recipes for Mining Twitter Data with rtweet](https://rud.is/books/21-recipes/).
+- [Use Twitter Social Media Data in Python](https://www.earthdatascience.org/courses/use-data-open-source-python/intro-to-apis/social-media-text-mining-python/)
+

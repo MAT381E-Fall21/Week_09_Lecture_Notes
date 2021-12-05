@@ -1,0 +1,102 @@
+---
+title: "Application on Data Retrieval from Twitter"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Claimer: This training is obtained from the following source:
+https://raw.githubusercontent.com/maria-pro/useR2019_tutorial/master/Twitter.Rmd 
+and is modified as needed.
+
+
+### Package `rtweet` 
+
+The dataset that we are going to work with is for coffee!
+
+Now, lets load tweets, previously saved in the `coffeeTweets.csv` file using `read_csv` function. 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(readr)
+data <- read_csv("data/coffeeTweets.csv")
+View(data)
+glimpse(data)
+```
+
+## Hashtag frequency 
+
+Let's investigate which other hashtags were used in tweets that we located and the frequency of those hashtags:
+
+The hashtag information is stored in the `hashtag` variable. Let's have a look at them
+
+We will convert all hashtags to lower case first and then use a `wordcloud` to show the frequencies
+
+```{r}
+data %>% 
+  pull(hashtags) %>% 
+  head()
+```
+
+```{r}
+library(forcats)
+library(tidytext)
+
+tidy_hashtags <- data %>%
+  select(hashtags)%>%
+  unnest_tokens(output=Word, hashtags, token = "words")%>% #tokenize hashtags by word
+  count(Word) %>% #we have two variable, word and n.
+  filter(n > 500) %>% #there are 26 words
+  arrange(desc(n)) %>% 
+  rename(freq = n)
+
+tidy_hashtags
+```
+
+```{r}
+library(wordcloud2)
+wordcloud2(tidy_hashtags)
+```
+  
+or we can go fancy with `color` and `shape` parameters:
+  
+```{r}
+wordcloud2(tidy_hashtags, size = 2, shape="star", color = "random-light")
+```
+
+
+# Not in class.
+# Emojis
+
+`Emoji` are smileys used in `Twitter` and communications.They are numerous and fun! They are  like emoticons, but emoji are actual pictures instead of typographics. 
+
+We will use `hadley/emo` package
+
+```{r eval=FALSE}
+devtools::install_github("hadley/emo")
+library(emo)
+```
+
+They are fun:
+
+emo::ji("heart")
+
+emo::ji("ghost")
+
+Let's have a look how we can use them to analyse tweets:
+
+Let's first extract them from tweets into a separate column `emoji and `unnest` them
+
+```{r eval=FALSE}
+library(stringr)
+
+emoji <- data %>%
+  mutate( 
+    emoji = ji_extract_all(text)
+  ) %>%
+  select(screen_name,emoji) %>% 
+  unnest(emoji) 
+emoji
+```
