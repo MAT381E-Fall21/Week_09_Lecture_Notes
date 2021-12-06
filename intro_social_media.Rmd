@@ -59,13 +59,13 @@ knitr::opts_chunk$set(echo = TRUE, error = TRUE, warning = FALSE, message = FALS
 - There are many challenges associated with social media data including:
   - **Non standard text:** because social media data are often a combination of text, graphics and videos, there is a significant data cleaning involved. Often, you need to find information about something in non-standard text format - some words may be capitalized, abbreviations may be used, punctuation and even emojiis all have to be considered when working with text.
   - **Non-standard or lack of consistent geolocation information:** Not all social media is spatially located (geolocated). It is thus often tricky to figure out where the data are coming from. Sometimes you have some geolocation information in non-standard text formats - for instance İstanbul may be in the forms: İst, IST, ISTANBUL and so on.
-   - **API limitations:** Most APIs don’t allow users to download everything. In the case of Twitter, you are limited to 6-9 days of historical tweets, 18,000 tweets per API call. There is also restriction on the number of requests you are allowed to do is based on a time interval such as 15-minutes. 
+   - **API limitations:** Most APIs don’t allow users to download everything. In the case of Twitter, you are limited to 6-9 days of historical tweets, 18,000 tweets per API call. There is also restriction on the number of requests you are allowed to do which is based on a time interval such as 15-minutes. 
 ---
 #### 💡 A side note: Getting Data from Internet
 
 - There are a few ways to obtain data from the Internet: 
   - **Click and download data** on the internet as a flat file such as `.csv` or `.xls`,
-  - **Scrape** an html website, and
+  - **Scrape** a website, and
   - **Use APIs** (standard APIs or APIs possibly wrapped within a software package).
   
 ---
@@ -96,7 +96,7 @@ knitr::include_graphics('images/apitwitter.png')
 - According to Wikipedia:  
 
 >
-Twitter is a social networking and microblogging service. Users use any device with an internet connection and a web browser to send and to read messages, called "tweets". For years, tweets could be up to 140 characters long, then doubled in November 2017 to 280 characters. They appear on the user's profile page. Tweets can usually be read by anyone, but senders can also keep messages private. Private tweets only go to their list of friends. Users may subscribe to tweets from other people. This is called following, and subscribers are known as followers. 
+Twitter is a social networking and microblogging service. Users use any device with an internet connection and a web browser to send and to read messages, called "tweets". For years, tweets could be up to 140 characters long, then doubled in November 2017 to 280 characters. They appear on the user's profile page. Tweets can usually be read by anyone, but senders can also keep messages private. Private tweets only go to their list of friends. Users may subscribe to tweets from other people. This is called **following**, and subscribers are known as **followers**. 
 >
 
 - Many people use Twitter to discuss on any topic. These topics may be related anything of interest and may including: **science**, **data science**, **computing**, sports, politics, weather, news, media, and more.
